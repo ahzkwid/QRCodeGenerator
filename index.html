@@ -1,0 +1,44 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/easyqrcodejs@4.4.5/dist/easy.qrcode.min.js"></script>
+
+<div>
+  <input id="urlInput" type="text" placeholder="URL 입력" style="width:300px;">
+  <button id="dlBtn">다운로드</button>
+  <br><br>
+  <div id="qrContainer"></div>
+</div>
+
+<script>
+$(function() {
+  let qr
+  function createQR(url) {
+    $('#qrContainer').empty()
+    qr = new QRCode(document.getElementById("qrContainer"), {
+      text: url,
+      width: 256,
+      height: 256,
+      dotScale: 1,
+      drawFunction: 'canvas'
+    })
+  }
+
+  $('#urlInput').on('input', function () {
+    const url = $(this).val()
+    if (url.trim()) {
+      createQR(url)
+    } else {
+      $('#qrContainer').empty()
+    }
+  })
+
+  $('#dlBtn').on('click', function () {
+    const canvas = $('#qrContainer').find('canvas')[0]
+    if (canvas) {
+      const a = document.createElement('a')
+      a.href = canvas.toDataURL()
+      a.download = 'qrcode.png'
+      a.click()
+    }
+  })
+})
+</script>
