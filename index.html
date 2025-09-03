@@ -1,5 +1,15 @@
+<meta charset="utf-8" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/easyqrcodejs@4.4.5/dist/easy.qrcode.min.js"></script>
+
+<div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;">
+  <label id="langLabel" for="langSelect" style="font-weight:600;">언어</label>
+  <select id="langSelect">
+    <option value="ko">한국어</option>
+    <option value="en">English</option>
+    <option value="ja">日本語</option>
+  </select>
+</div>
 
 <div>
   <input id="urlInput" type="text" placeholder="URL 입력" style="width:300px;">
@@ -9,36 +19,104 @@
 </div>
 
 <script>
-$(function() {
-  let qr
+$(function () {
+  // --- i18n 사전 ---
+  const i18n = {
+    ko: {
+      lang: '언어',
+      placeholder: 'URL 입력',
+      download: '다운로드',
+      invalid: 'URL을 입력하세요.'
+    },
+    en: {
+      lang: 'Language',
+      placeholder: 'Enter URL',
+      download: 'Download',
+      invalid: 'Please enter a URL.'
+    },
+    ja: {
+      lang: '言語',
+      placeholder: 'URLを入力',
+      download: 'ダウンロード',
+      invalid: 'URLを入力してください。'
+    }
+  };
+
+  // 기본 언어 결정: ?lang= 우선, 없으면 브라우저 언어
+  function detectLang() {
+    const qs = new URLSearchParams(location.search);
+    const q = (qs.get('lang') || '').toLowerCase();
+    if (q === 'ko' || q === 'en' || q === 'ja') return q;
+    const nav = (navigator.language || 'ko').toLowerCase();
+    if (nav.startsWith('ja')) return 'ja';
+    if (nav.startsWith('en')) return 'en';
+    return 'ko';
+  }
+
+  let currentLang = detectLang();
+
+  // 언어 적용
+  function applyLang(lang) {
+    const t = i18n[lang] || i18n.ko;
+    $('#langLabel').text(t.lang);
+    $('#dlBtn').text(t.download).attr('aria-label', t.download);
+    $('#urlInput').attr('placeholder', t.placeholder);
+    document.documentElement.lang = lang;
+    currentLang = lang;
+  }
+
+  // URL에 lang 반영
+  function persistLangToURL(lang) {
+    const url = new URL(location.href);
+    url.searchParams.set('lang', lang);
+    history.replaceState(null, '', url.toString());
+  }
+
+  // 초기 언어 세팅
+  $('#langSelect').val(currentLang);
+  applyLang(currentLang);
+  persistLangToURL(currentLang);
+
+  // 언어 변경 이벤트
+  $('#langSelect').on('change', function () {
+    const lang = $(this).val();
+    applyLang(lang);
+    persistLangToURL(lang);
+  });
+
+  // --- QR 생성 로직 (원본 유지 + 약간 정리) ---
+  let qr;
   function createQR(url) {
-    $('#qrContainer').empty()
-    qr = new QRCode(document.getElementById("qrContainer"), {
+    $('#qrContainer').empty();
+    qr = new QRCode(document.getElementById('qrContainer'), {
       text: url,
       width: 256,
       height: 256,
       dotScale: 1,
       drawFunction: 'canvas'
-    })
+    });
   }
 
   $('#urlInput').on('input', function () {
-    const url = $(this).val()
+    const url = $(this).val();
     if (url.trim()) {
-      createQR(url)
+      createQR(url);
     } else {
-      $('#qrContainer').empty()
+      $('#qrContainer').empty();
     }
-  })
+  });
 
   $('#dlBtn').on('click', function () {
-    const canvas = $('#qrContainer').find('canvas')[0]
-    if (canvas) {
-      const a = document.createElement('a')
-      a.href = canvas.toDataURL()
-      a.download = 'qrcode.png'
-      a.click()
+    const t = i18n[currentLang] || i18n.ko;
+    const canvas = $('#qrContainer').find('canvas')[0];
+    if (!canvas) {
+      alert(t.invalid);
+      return;
     }
-  })
-})
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL();
+    a.download = 'qrcode.png';
+    a.click();
+  });
+});
 </script>
